@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>貪食蛇遊戲 - 完整遊戲流程 (修正Easy穿牆)</title>
+  <title>貪食蛇遊戲 - 關卡與防爆演算法</title>
   <style>
     * {
       box-sizing: border-box;
@@ -25,20 +25,33 @@
       gap: 15px;
     }
 
-    /* 遊戲資訊頂欄 */
-    .game-info {
+    /* 頂部資訊列與關卡選擇器 */
+    .controls-header {
       display: flex;
-      gap: 20px;
+      gap: 15px;
       align-items: center;
       justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    select, button.game-btn {
+      background-color: #333;
+      color: #00ffcc;
+      border: 1px solid #00ffcc;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .score-board {
       font-size: 18px;
       font-weight: bold;
       color: #00ffcc;
     }
 
-    /* RWD 1:1 Canvas 包裹容器 (相對定位以放置 Modal) */
+    /* RWD 1:1 Canvas 容器 */
     .canvas-container {
-      position: relative;
       width: 100%;
       max-width: 500px;
       aspect-ratio: 1 / 1;
@@ -54,73 +67,6 @@
       border-radius: 8px;
       background-color: #000000;
       box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
-    }
-
-    /* 覆蓋於 Canvas 上的彈窗 UI 面板 */
-    .overlay-screen {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.88);
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      padding: 20px;
-      box-sizing: border-box;
-      z-index: 10;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* 選單表單元素樣式 */
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-      width: 80%;
-      max-width: 250px;
-    }
-
-    label {
-      font-size: 14px;
-      color: #00ffcc;
-    }
-
-    select, input {
-      background: #222;
-      color: #fff;
-      border: 1px solid #00ffcc;
-      padding: 8px;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-
-    .btn-main {
-      background: #00ffcc;
-      color: #000;
-      border: none;
-      padding: 10px 24px;
-      font-size: 16px;
-      font-weight: bold;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 10px;
-      transition: background 0.2s, transform 0.1s;
-    }
-
-    .btn-main:hover {
-      background: #00cca3;
-    }
-
-    .btn-main:active {
-      transform: scale(0.95);
     }
 
     /* 十字虛擬 D-Pad 排版 */
@@ -163,64 +109,20 @@
 </head>
 <body>
 
-  <!-- 頂部資訊欄 -->
-  <div class="game-info">
-    <div>關卡: <span id="uiLevel">1</span> / <span id="uiTotalLevels">3</span></div>
-    <div>進度: <span id="uiFoodCount">0</span>/10</div>
-    <div>得分: <span id="uiScore">0</span></div>
+  <!-- 控制列與分數 -->
+  <div class="controls-header">
+    <label for="levelSelect">關卡：</label>
+    <select id="levelSelect">
+      <option value="1">Level 1 - 簡單 (簡單邊框)</option>
+      <option value="2">Level 2 - 中等 (中央十字)</option>
+      <option value="3">Level 3 - 困難 (迷宮障礙)</option>
+    </select>
+    <div class="score-board">得分: <span id="score">0</span></div>
   </div>
 
   <!-- 1:1 Canvas 區域 -->
   <div class="canvas-container">
     <canvas id="gameCanvas" width="500" height="500"></canvas>
-
-    <!-- 首頁設定面板 (Home Screen) -->
-    <div id="homeScreen" class="overlay-screen">
-      <h2 style="color:#00ffcc; margin-bottom:10px;">貪食蛇遊戲設定</h2>
-      
-      <div class="form-group">
-        <label for="totalLevelsSelect">關卡總數：</label>
-        <select id="totalLevelsSelect">
-          <option value="1">1 關</option>
-          <option value="2">2 關</option>
-          <option value="3" selected>3 關</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="difficultySelect">難度模式：</label>
-        <select id="difficultySelect">
-          <option value="easy">簡單 (可穿牆/無外牆)</option>
-          <option value="hard" selected>困難 (撞牆/障礙即死)</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label for="speedSelect">移動速度：</label>
-        <select id="speedSelect">
-          <option value="slow">低速 (160ms)</option>
-          <option value="normal" selected>中速 (120ms)</option>
-          <option value="fast">高速 (80ms)</option>
-        </select>
-      </div>
-
-      <button id="startBtn" class="btn-main">開始遊戲</button>
-    </div>
-
-    <!-- 過場彈窗 (Level Complete Modal) -->
-    <div id="levelCompleteModal" class="overlay-screen hidden">
-      <h2 style="color:#00ffcc;" id="modalTitle">第 1 關完成！</h2>
-      <p id="modalDesc">表現太讚了！準備好迎接挑戰了嗎？</p>
-      <button id="nextLevelBtn" class="btn-main">點擊進入下一關</button>
-    </div>
-
-    <!-- 全關卡通關慶祝 (Celebration Screen) -->
-    <div id="celebrationModal" class="overlay-screen hidden">
-      <h1 style="color:#00ffcc; font-size: 28px;">🎉 恭喜全關卡通關！</h1>
-      <p style="text-align: center; color: #ccc;">你成功克服了所有迷宮與障礙！</p>
-      <p>最終總得分：<span id="finalScore" style="color:#00ffcc; font-weight:bold;">0</span></p>
-      <button id="backHomeBtn" class="btn-main">返回首頁</button>
-    </div>
   </div>
 
   <!-- 半透明虛擬 D-Pad -->
@@ -233,155 +135,86 @@
 
   <script>
     // ----------------------------------------------------
-    // 1. 常數與 DOM 元素初始化
+    // 1. 常數與遊戲設定
     // ----------------------------------------------------
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const levelSelect = document.getElementById('levelSelect');
 
-    const uiLevel = document.getElementById('uiLevel');
-    const uiTotalLevels = document.getElementById('uiTotalLevels');
-    const uiFoodCount = document.getElementById('uiFoodCount');
-    const uiScore = document.getElementById('uiScore');
-
-    const homeScreen = document.getElementById('homeScreen');
-    const levelCompleteModal = document.getElementById('levelCompleteModal');
-    const celebrationModal = document.getElementById('celebrationModal');
-
-    const totalLevelsSelect = document.getElementById('totalLevelsSelect');
-    const difficultySelect = document.getElementById('difficultySelect');
-    const speedSelect = document.getElementById('speedSelect');
-
-    const startBtn = document.getElementById('startBtn');
-    const nextLevelBtn = document.getElementById('nextLevelBtn');
-    const backHomeBtn = document.getElementById('backHomeBtn');
-
-    const GRID_SIZE = 20;
-    const TILE_SIZE = canvas.width / GRID_SIZE;
-    const TARGET_FOOD_PER_LEVEL = 10;
+    const GRID_SIZE = 20; // 20x20 網格
+    const TILE_COUNT = 20;
+    const TILE_SIZE = canvas.width / GRID_SIZE; // 每格 25px
+    const GAME_SPEED = 120; // 遊戲更新間隔 (毫秒)
 
     // ----------------------------------------------------
-    // 2. localStorage 設定管理
-    // ----------------------------------------------------
-    const STORAGE_KEY = 'SNAKE_GAME_SETTINGS';
-
-    function loadSettings() {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const settings = JSON.parse(saved);
-          totalLevelsSelect.value = settings.totalLevels || '3';
-          difficultySelect.value = settings.difficulty || 'hard';
-          speedSelect.value = settings.speed || 'normal';
-        } catch (e) {
-          console.error("讀取 localStorage 設定失敗", e);
-        }
-      }
-    }
-
-    function saveSettings() {
-      const settings = {
-        totalLevels: totalLevelsSelect.value,
-        difficulty: difficultySelect.value,
-        speed: speedSelect.value
-      };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    }
-
-    // ----------------------------------------------------
-    // 3. 地圖資料 (根據難度動態生成)
+    // 2. 3 款固定難度地圖設計 (0: 空位, 1: 牆壁/障礙物)
     // ----------------------------------------------------
     function createBaseMap() {
+      // 創建 20x20 基礎空地圖
       return Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(0));
     }
 
-    function getMap(level, diff) {
+    function getMap(level) {
       const map = createBaseMap();
       
-      // 只有在 HARD 困難模式下，才生成四周的邊框牆壁
-      if (diff === 'hard') {
-        for (let i = 0; i < GRID_SIZE; i++) {
-          map[0][i] = 1;
-          map[GRID_SIZE - 1][i] = 1;
-          map[i][0] = 1;
-          map[i][GRID_SIZE - 1] = 1;
-        }
+      // 所有關卡均加上四周邊框牆
+      for (let i = 0; i < GRID_SIZE; i++) {
+        map[0][i] = 1;
+        map[GRID_SIZE - 1][i] = 1;
+        map[i][0] = 1;
+        map[i][GRID_SIZE - 1] = 1;
       }
 
-      // 地圖內部障礙物設定
       if (level === 2) {
-        // Level 2: 中央十字
+        // Level 2 中等：中央十字障礙物
         for (let i = 7; i <= 12; i++) {
           map[10][i] = 1;
           map[i][10] = 1;
         }
       } else if (level === 3) {
-        // Level 3: 迷宮牆壁
+        // Level 3 困難：四角障礙與中央障礙
+        // 中央障礙
         for (let i = 8; i <= 11; i++) {
           map[8][i] = 1;
           map[11][i] = 1;
         }
+        // 四角柱子
         const pillars = [[4,4], [4,15], [15,4], [15,15]];
         pillars.forEach(([r, c]) => {
-          map[r][c] = 1; map[r+1][c] = 1;
-          map[r][c+1] = 1; map[r+1][c+1] = 1;
+          map[r][c] = 1;
+          map[r+1][c] = 1;
+          map[r][c+1] = 1;
+          map[r+1][c+1] = 1;
         });
       }
+
       return map;
     }
 
     // ----------------------------------------------------
-    // 4. 遊戲狀態變數
+    // 3. 遊戲狀態變數
     // ----------------------------------------------------
     let currentLevel = 1;
-    let totalLevels = 3;
-    let difficulty = 'hard';
-    let gameSpeedMs = 120;
-
-    let currentMap = [];
+    let currentMap = getMap(currentLevel);
     let snake = [];
-    let direction = { x: 1, y: 0 };
+    let direction = { x: 1, y: 0 }; // 初始向右
     let nextDirection = { x: 1, y: 0 };
     let food = null;
     let score = 0;
-    let foodEatenInCurrentLevel = 0;
-
     let gameInterval = null;
-    let isGameRunning = false;
-
-    const speedMap = {
-      'slow': 160,
-      'normal': 120,
-      'fast': 80
-    };
+    let isGameOver = false;
 
     // ----------------------------------------------------
-    // 5. 遊戲流程控制
+    // 4. 重置與初始化遊戲
     // ----------------------------------------------------
-    function startGame() {
-      saveSettings();
-
-      totalLevels = parseInt(totalLevelsSelect.value, 10);
-      difficulty = difficultySelect.value;
-      gameSpeedMs = speedMap[speedSelect.value] || 120;
-
-      currentLevel = 1;
+    function initGame() {
+      currentMap = getMap(currentLevel);
       score = 0;
+      scoreElement.innerText = score;
+      isGameOver = false;
 
-      uiTotalLevels.innerText = totalLevels;
-      homeScreen.classList.add('hidden');
-      celebrationModal.classList.add('hidden');
-      levelCompleteModal.classList.add('hidden');
-
-      startLevel(currentLevel);
-    }
-
-    function startLevel(level) {
-      currentLevel = level;
-      // 將 difficulty 傳入 getMap 以決定是否繪製邊框牆
-      currentMap = getMap(currentLevel, difficulty);
-      foodEatenInCurrentLevel = 0;
-
-      // 重置蛇位置與長度
+      // 重置蛇的位置（固定生成於左上角安全區域）
       snake = [
         { x: 3, y: 2 },
         { x: 2, y: 2 },
@@ -390,66 +223,68 @@
       direction = { x: 1, y: 0 };
       nextDirection = { x: 1, y: 0 };
 
-      updateUI();
+      // 生成第一個食物
       spawnFood();
 
-      isGameRunning = true;
+      // 重置定時器
       if (gameInterval) clearInterval(gameInterval);
-      gameInterval = setInterval(gameLoop, gameSpeedMs);
-    }
-
-    function updateUI() {
-      uiLevel.innerText = currentLevel;
-      uiFoodCount.innerText = foodEatenInCurrentLevel;
-      uiScore.innerText = score;
+      gameInterval = setInterval(gameLoop, GAME_SPEED);
     }
 
     // ----------------------------------------------------
-    // 6. 防爆食物生成演算法
+    // 5. 防爆食物生成演算法 (重點需求)
     // ----------------------------------------------------
     function spawnFood() {
       const emptyCells = [];
 
+      // 遍歷整個 20x20 地圖
       for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
+          // 檢查是否為牆壁
           if (currentMap[r][c] === 1) continue;
-          const isSnake = snake.some(s => s.x === c && s.y === r);
+
+          // 檢查是否為蛇身
+          const isSnake = snake.some(segment => segment.x === c && segment.y === r);
           if (isSnake) continue;
+
+          // 若非牆壁且非蛇身，紀錄為可用空位
           emptyCells.push({ x: c, y: r });
         }
       }
 
+      // 特殊判定：若無任何空位，代表已填滿整個可移動區域，通關！
       if (emptyCells.length === 0) {
-        handleLevelComplete();
+        clearInterval(gameInterval);
+        alert(`🎉 恭喜通關 Level ${currentLevel}！獲得滿分！`);
         return;
       }
 
+      // 從空位清單中隨機抽取一個座標
       const randomIndex = Math.floor(Math.random() * emptyCells.length);
       food = emptyCells[randomIndex];
     }
 
     // ----------------------------------------------------
-    // 7. 遊戲核心循環 (Game Loop)
+    // 6. 遊戲核心循環 (Game Loop)
     // ----------------------------------------------------
     function gameLoop() {
-      if (!isGameRunning) return;
+      update();
+      draw();
+    }
 
+    function update() {
+      if (isGameOver) return;
+
+      // 更新方向
       direction = { ...nextDirection };
-      let head = {
+
+      // 計算新蛇頭座標
+      const head = {
         x: snake[0].x + direction.x,
         y: snake[0].y + direction.y
       };
 
-      // EASY 模式：螢幕邊界穿牆處理 (在檢查牆壁碰撞之前先繞回)
-      if (difficulty === 'easy') {
-        if (head.x < 0) head.x = GRID_SIZE - 1;
-        else if (head.x >= GRID_SIZE) head.x = 0;
-
-        if (head.y < 0) head.y = GRID_SIZE - 1;
-        else if (head.y >= GRID_SIZE) head.y = 0;
-      }
-
-      // 碰撞檢查 A：是否撞到地圖牆壁/障礙物 (Hard 模式的邊框牆或內部障礙物)
+      // A. 撞牆 / 邊界碰撞判定
       if (
         head.x < 0 || head.x >= GRID_SIZE ||
         head.y < 0 || head.y >= GRID_SIZE ||
@@ -459,8 +294,8 @@
         return;
       }
 
-      // 碰撞檢查 B：是否撞到蛇身體
-      if (snake.some(s => s.x === head.x && s.y === head.y)) {
+      // B. 撞到自己碰撞判定
+      if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
         handleDeath();
         return;
       }
@@ -468,59 +303,34 @@
       // 蛇頭推進
       snake.unshift(head);
 
-      // 吃食物判定
+      // C. 吃食物判定
       if (food && head.x === food.x && head.y === food.y) {
         score += 10;
-        foodEatenInCurrentLevel++;
-        updateUI();
-
-        if (foodEatenInCurrentLevel >= TARGET_FOOD_PER_LEVEL) {
-          handleLevelComplete();
-          return;
-        } else {
-          spawnFood();
-        }
+        scoreElement.innerText = score;
+        spawnFood(); // 重新生成食物
       } else {
+        // 沒有吃到食物則移除尾巴維持長度
         snake.pop();
       }
-
-      draw();
     }
 
-    // ----------------------------------------------------
-    // 8. 通關與死亡處理
-    // ----------------------------------------------------
+    // 撞牆/死亡處理：當關分數歸零，當關立即重來
     function handleDeath() {
-      clearInterval(gameInterval);
-      isGameRunning = false;
+      isGameOver = true;
+      console.log("[Game Over]: 碰撞死亡，當關重置！");
       alert(`撞到障礙物！得分歸零，重來當關 Level ${currentLevel}。`);
-      
-      score -= (foodEatenInCurrentLevel * 10);
-      if (score < 0) score = 0;
-      startLevel(currentLevel);
-    }
-
-    function handleLevelComplete() {
-      clearInterval(gameInterval);
-      isGameRunning = false;
-
-      if (currentLevel >= totalLevels) {
-        document.getElementById('finalScore').innerText = score;
-        celebrationModal.classList.remove('hidden');
-      } else {
-        document.getElementById('modalTitle').innerText = `第 ${currentLevel} 關完成！`;
-        levelCompleteModal.classList.remove('hidden');
-      }
+      initGame();
     }
 
     // ----------------------------------------------------
-    // 9. 畫面渲染
+    // 7. 畫面渲染 (Draw)
     // ----------------------------------------------------
     function draw() {
+      // 清空 Canvas
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 繪製地圖牆壁
+      // A. 繪製地圖牆壁/障礙物
       for (let r = 0; r < GRID_SIZE; r++) {
         for (let c = 0; c < GRID_SIZE; c++) {
           if (currentMap[r][c] === 1) {
@@ -530,7 +340,7 @@
         }
       }
 
-      // 繪製食物
+      // B. 繪製食物
       if (food) {
         ctx.fillStyle = '#ff3366';
         ctx.beginPath();
@@ -544,34 +354,46 @@
         ctx.fill();
       }
 
-      // 繪製蛇身
-      snake.forEach((s, i) => {
-        ctx.fillStyle = i === 0 ? '#00ffcc' : '#00aa88';
-        ctx.fillRect(s.x * TILE_SIZE + 1, s.y * TILE_SIZE + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+      // C. 繪製蛇身
+      snake.forEach((segment, index) => {
+        // 蛇頭與蛇身著色區分
+        ctx.fillStyle = index === 0 ? '#00ffcc' : '#00aa88';
+        ctx.fillRect(
+          segment.x * TILE_SIZE + 1,
+          segment.y * TILE_SIZE + 1,
+          TILE_SIZE - 2,
+          TILE_SIZE - 2
+        );
       });
     }
 
     // ----------------------------------------------------
-    // 10. 控制與事件監聽
+    // 8. 方向控制邏輯 (包含防 180 度反轉)
     // ----------------------------------------------------
-    function setDirection(dir) {
-      if (!isGameRunning) return;
-      if (dir === 'Up' && direction.y === 0) nextDirection = { x: 0, y: -1 };
-      if (dir === 'Down' && direction.y === 0) nextDirection = { x: 0, y: 1 };
-      if (dir === 'Left' && direction.x === 0) nextDirection = { x: -1, y: 0 };
-      if (dir === 'Right' && direction.x === 0) nextDirection = { x: 1, y: 0 };
+    function setDirection(dirName) {
+      if (dirName === 'Up' && direction.y === 0) nextDirection = { x: 0, y: -1 };
+      if (dirName === 'Down' && direction.y === 0) nextDirection = { x: 0, y: 1 };
+      if (dirName === 'Left' && direction.x === 0) nextDirection = { x: -1, y: 0 };
+      if (dirName === 'Right' && direction.x === 0) nextDirection = { x: 1, y: 0 };
     }
 
-    // D-Pad 按鈕
-    const dPadMap = { 'btn-up': 'Up', 'btn-down': 'Down', 'btn-left': 'Left', 'btn-right': 'Right' };
-    Object.entries(dPadMap).forEach(([id, dir]) => {
-      document.getElementById(id).addEventListener('pointerdown', (e) => {
+    // 虛擬 D-Pad 事件監聽
+    const dPadButtons = {
+      'btn-up': 'Up',
+      'btn-down': 'Down',
+      'btn-left': 'Left',
+      'btn-right': 'Right'
+    };
+
+    Object.entries(dPadButtons).forEach(([id, dir]) => {
+      const btn = document.getElementById(id);
+      btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
         setDirection(dir);
       });
     });
 
-    // 鍵盤監聽
+    // 實體鍵盤監聽
     const keyMap = {
       'ArrowUp': 'Up', 'KeyW': 'Up', 'w': 'Up', 'W': 'Up',
       'ArrowDown': 'Down', 'KeyS': 'Down', 's': 'Down', 'S': 'Down',
@@ -583,7 +405,10 @@
       const dir = keyMap[e.key] || keyMap[e.code];
       if (dir) {
         setDirection(dir);
-        const btn = document.getElementById(`btn-${dir.toLowerCase()}`);
+
+        // UI 按鈕按壓效果
+        const btnId = `btn-${dir.toLowerCase()}`;
+        const btn = document.getElementById(btnId);
         if (btn) {
           btn.classList.add('active');
           setTimeout(() => btn.classList.remove('active'), 150);
@@ -591,23 +416,14 @@
       }
     });
 
-    // 按鈕監聽
-    startBtn.addEventListener('click', startGame);
-
-    nextLevelBtn.addEventListener('click', () => {
-      levelCompleteModal.classList.add('hidden');
-      startLevel(currentLevel + 1);
+    // 關卡切換事件
+    levelSelect.addEventListener('change', (e) => {
+      currentLevel = parseInt(e.target.value, 10);
+      initGame();
     });
 
-    backHomeBtn.addEventListener('click', () => {
-      celebrationModal.classList.add('hidden');
-      homeScreen.classList.remove('hidden');
-      loadSettings();
-    });
-
-    // 初始化頁面
-    loadSettings();
-    draw();
+    // 啟動遊戲
+    initGame();
   </script>
 </body>
 </html>
