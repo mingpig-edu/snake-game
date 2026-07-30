@@ -10,9 +10,9 @@
 
 | 開發階段 | 網頁即時預覽連結 (Demo) | GitHub 程式碼分支 (Branch) |
 | :--- | :--- | :--- |
-| **Stage 1: UI 介面與控制** | [👉 點此體驗 Stage 1](https://snake-game-git-stage-1-ui-YOUR_ACCOUNT.vercel.app) | [`stage-1-ui`](https://github.com/YOUR_ACCOUNT/snake-game/tree/stage-1-ui) |
-| **Stage 2: 核心碰撞與地圖** | [👉 點此體驗 Stage 2](https://snake-game-git-stage-2-core-YOUR_ACCOUNT.vercel.app) | [`stage-2-core`](https://github.com/YOUR_ACCOUNT/snake-game/tree/stage-2-core) |
-| **Stage 3: 完整流程與選單** | [👉 點此體驗 Stage 3 (完整版)](https://snake-game-YOUR_ACCOUNT.vercel.app) | [`main`](https://github.com/YOUR_ACCOUNT/snake-game/tree/main) |
+| **Stage 1: UI 介面與控制** | [👉 點此體驗 Stage 1](https://snake-game-git-stage-1-ui-mingpig.vercel.app/) | [`stage-1-ui`](https://github.com/mingpig-edu/snake-game/blob/26d3856f14377c93389b112d5867e47b3a9775b7/index.html) |
+| **Stage 2: 核心碰撞與地圖** | [👉 點此體驗 Stage 2](https://snake-game-git-stage-2-core-mingpig.vercel.app/) | [`stage-2-core`](https://github.com/mingpig-edu/snake-game/blob/fcc62bc0364470747198223632b33fe0c93b1846/index.html) |
+| **Stage 3: 完整流程與選單** | [👉 點此體驗 Stage 3 (完整版)](https://snake-game-six-kappa-24.vercel.app/) | [`main`](https://github.com/mingpig-edu/snake-game/blob/6e229a7f2e1d4cf7bec53bc96f7f5cec652014ef/index.html) |
 
 > 💡 **提示**：請將網址中的 `YOUR_ACCOUNT` 替換為你的 GitHub / Vercel 帳號名稱！
 
